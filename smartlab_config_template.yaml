@@ -1,0 +1,3 @@
+entity_id: light.something
+websocket: ws://<server>/api/websocket
+access_token: ey<something>
