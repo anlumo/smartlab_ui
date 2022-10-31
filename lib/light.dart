@@ -31,23 +31,58 @@ class LightWidget extends StatelessWidget {
               onColorChanged: (color) {
                 ha.lampState = HSLColor.fromColor(color);
               },
+              hueRingStrokeWidth: 30,
               enableAlpha: false,
               displayThumbColor: true),
-          Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: ElevatedButton(
-                  onPressed: () {
-                    ha.setLamp(!on);
-                  },
-                  style: ButtonStyle(
-                      backgroundColor: on
-                          ? MaterialStateProperty.all(
-                              Theme.of(context).colorScheme.secondary)
-                          : null,
-                      padding:
-                          MaterialStateProperty.all(const EdgeInsets.all(20))),
-                  child: Text(on ? "Turn Off" : "Turn On",
-                      style: const TextStyle(fontSize: 40)))),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Padding(
+                  padding: const EdgeInsets.all(10.0),
+                  child: ElevatedButton(
+                      onPressed: () {
+                        ha.setLamp(!on);
+                      },
+                      style: ButtonStyle(
+                          backgroundColor: on
+                              ? MaterialStateProperty.all(
+                                  Theme.of(context).colorScheme.secondary)
+                              : null,
+                          padding: MaterialStateProperty.all(
+                              const EdgeInsets.all(20))),
+                      child: Text(on ? "Turn Off" : "Turn On",
+                          style: const TextStyle(fontSize: 40)))),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                        onPressed: () {
+                          ha.startup();
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child:
+                              Text("Startup", style: TextStyle(fontSize: 24)),
+                        )),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton(
+                        onPressed: () {
+                          ha.shutdown();
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child:
+                              Text("Shutdown", style: TextStyle(fontSize: 24)),
+                        )),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ],
       );
     });

@@ -9,7 +9,7 @@
 .history
 .svn/
 migrate_working_dir/
-/smartlab_config.yaml
+assets/smartlab_config.yaml
 
 # IntelliJ related
 *.iml

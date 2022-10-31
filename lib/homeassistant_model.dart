@@ -9,9 +9,11 @@ import 'package:rate_limiter/rate_limiter.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class HomeAssistantModel extends ChangeNotifier {
-  final String _uri;
-  final String _entityId;
+  final Uri _uri;
+  final String _lightEntityId;
   final String _accessToken;
+  final String _shutdownAutomation;
+  final String _startupAutomation;
 
   WebSocketChannel? _channel;
   StreamIterator? _channelIterator;
@@ -22,10 +24,12 @@ class HomeAssistantModel extends ChangeNotifier {
   final Map<int, Function> _eventSubscribers = {};
 
   HomeAssistantModel(dynamic config)
-      : _uri = config['websocket'],
-        _entityId = config['entity_id'],
+      : _uri = Uri.parse(config['websocket']),
+        _lightEntityId = config['light_entity'],
+        _shutdownAutomation = config['shutdown_automation'],
+        _startupAutomation = config['startup_automation'],
         _accessToken = config['access_token'] {
-    _channel = WebSocketChannel.connect(Uri.parse(config['websocket']));
+    _channel = WebSocketChannel.connect(_uri);
     _channelIterator = StreamIterator(_channel!.stream);
     log("Connecting to websocket at $_uri...", name: "at.metalab.smart");
     _connect();
@@ -100,7 +104,7 @@ class HomeAssistantModel extends ChangeNotifier {
         sendCommand,
         {
           "color": color,
-          "entity_id": _entityId,
+          "entity_id": _lightEntityId,
         }
       ]);
     }
@@ -113,7 +117,7 @@ class HomeAssistantModel extends ChangeNotifier {
         sendCommand,
         {
           "temperature": value,
-          "entity_id": _entityId,
+          "entity_id": _lightEntityId,
         }
       ]);
     }
@@ -124,9 +128,28 @@ class HomeAssistantModel extends ChangeNotifier {
       "domain": "light",
       "service": state ? "turn_on" : "turn_off",
       "target": {
-        "entity_id": _entityId,
+        "entity_id": _lightEntityId,
       },
     });
+  }
+
+  runAutomation(String name) {
+    sendCommand("call_service", {
+      "domain": "automation",
+      "service": "trigger",
+      "service_data": {
+        "entity_id": name,
+        "skip_condition": true,
+      },
+    });
+  }
+
+  shutdown() {
+    runAutomation(_shutdownAutomation);
+  }
+
+  startup() {
+    runAutomation(_startupAutomation);
   }
 
   Future<Map<String, dynamic>?> _recv() async {
@@ -141,7 +164,7 @@ class HomeAssistantModel extends ChangeNotifier {
     subscribeEvent("state_changed", (event) {
       var data = event["data"];
       if (data != null) {
-        if (data["entity_id"] == _entityId) {
+        if (data["entity_id"] == _lightEntityId) {
           log("event: $data", name: "at.metalab.smart.event");
           var state = data["new_state"];
           if (state != null) {
@@ -189,7 +212,7 @@ class HomeAssistantModel extends ChangeNotifier {
     });
   }
 
-  void _connect() async {
+  Future<void> _connect() async {
     var authRequired = await _recv();
     if (authRequired == null || authRequired['type'] != 'auth_required') {
       log('Invalid response from server: expected auth_required',
@@ -224,7 +247,7 @@ class HomeAssistantModel extends ChangeNotifier {
     }
   }
 
-  void _messageHandler() async {
+  Future<void> _messageHandler() async {
     log("Started message handler", name: "at.metalab.smart");
     var channelIterator = _channelIterator;
     if (channelIterator != null) {
@@ -262,7 +285,12 @@ class HomeAssistantModel extends ChangeNotifier {
       }
     }
     log("Connection closed.", name: "at.metalab.smart");
-    // TODO: reconnect
+
+    await Future.delayed(const Duration(seconds: 1));
+    // reconnect
+    _channel = WebSocketChannel.connect(_uri);
+    _channelIterator = StreamIterator(_channel!.stream);
+    await _connect();
   }
 
   Future<Map<String, dynamic>?> sendCommand(

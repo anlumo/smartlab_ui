@@ -1,16 +1,20 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:smartlab_ui/homeassistant_model.dart';
 import 'package:smartlab_ui/light.dart';
 import 'package:yaml/yaml.dart';
 
+// TOOD: https://pub.dev/packages/kiosk_mode
+// aka "Lock Task Mode"
+
 Future<void> main() async {
-  final configFile = File(const String.fromEnvironment('config',
-      defaultValue: 'smartlab_config.yaml'));
-  final yamlString = await configFile.readAsString();
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final yamlString = await rootBundle.loadString("assets/smartlab_config.yaml");
   final dynamic config = loadYaml(yamlString);
+
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
 
   runApp(ChangeNotifierProvider(
       create: (context) => HomeAssistantModel(config), child: const MyApp()));
@@ -24,6 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SmartLab',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
         //
